@@ -270,11 +270,17 @@ async fn streaming_output_detection_task(
         // Create a mutable copy of the parameters, so that we can modify it based on processing
         let mut detector_params = detector_params.clone();
         let detector_id = detector_id.to_string();
-        let chunker_id = ctx.config.get_chunker_id(&detector_id).unwrap();
+        let chunker_id = ctx.config.get_chunker_id(&detector_id).expect(&format!(
+            "error getting chunker id from detector: {}",
+            detector_id
+        ));
 
         // Get the detector config
         // TODO: Add error handling
-        let detector_config = ctx.config.detectors.get(&detector_id).unwrap();
+        let detector_config = ctx.config.detectors.get(&detector_id).expect(&format!(
+            "error getting detector config with detector: {}",
+            detector_id
+        ));
 
         // Get the default threshold to use if threshold is not provided by the user
         let default_threshold = detector_config.default_threshold;
@@ -285,7 +291,10 @@ async fn streaming_output_detection_task(
         // Subscribe to chunk broadcast stream
         let chunk_rx = chunk_broadcast_streams
             .get(&chunker_id)
-            .unwrap()
+            .expect(&format!(
+                "error getting chunker receiver from chunker: {}",
+                chunker_id
+            ))
             .subscribe();
         let error_tx = error_tx.clone();
         tokio::spawn(detection_task(
@@ -391,7 +400,7 @@ async fn detection_task(
                             let client = ctx
                                 .clients
                                 .get_as::<TextContentsDetectorClient>(&detector_id)
-                                .unwrap();
+                                .expect(&format!("error getting text content detector client {}", detector_id));
                             match client.text_contents(&detector_id, request, headers)
                                 .await
                                 .map_err(|error| Error::DetectorRequestFailed { id: detector_id.clone(), error }) {
